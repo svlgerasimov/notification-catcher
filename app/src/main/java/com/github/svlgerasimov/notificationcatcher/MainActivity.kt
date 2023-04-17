@@ -10,6 +10,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,6 +25,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.lifecycleScope
 import com.github.svlgerasimov.notificationcatcher.storage.AppDatabase
+import com.github.svlgerasimov.notificationcatcher.storage.NotificationEntity
+import com.github.svlgerasimov.notificationcatcher.storage.NotificationFromEntity
 import com.github.svlgerasimov.notificationcatcher.ui.theme.NotificationCatcherTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,6 +45,8 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background) {
                     Column {
                         val listText = remember {mutableStateOf("")}
+                        val historyList = 
+                            remember { mutableStateOf(emptyList<NotificationEntity>()) }
 
                         Text(
                             text = "Some text"
@@ -59,8 +65,12 @@ class MainActivity : ComponentActivity() {
                                 lifecycleScope.launch {
                                     withContext(Dispatchers.Default) {
                                         val history = readHistory(applicationContext)
-                                        Log.d(TAG, history)
-                                        listText.value = history
+                                        historyList.value = history
+                                        
+                                        val historyText = history
+                                            .joinToString(separator = "\n")
+                                        Log.d(TAG, historyText)
+                                        listText.value = historyText
                                     }
                                 }
                             }) {
@@ -77,7 +87,16 @@ class MainActivity : ComponentActivity() {
                             }) {
                             Text(text = "Clear history")
                         }
-                        Text(text = listText.value)
+//                        val textScroll = rememberScrollState(0)
+//                        Text(
+//                            text = listText.value,
+//                            modifier = Modifier.verticalScroll(textScroll)
+//                        )
+                        val historyScroll = rememberScrollState(0)
+                        History(
+                            notifications = historyList.value,
+                            modifier = Modifier.verticalScroll(historyScroll)
+                        )
                     }
                 }
             }
@@ -103,15 +122,23 @@ fun createNotification(context: Context) {
     notificationManager.notify(101, notificationBuilder.build())
 }
 
-fun readHistory(context: Context): String {
+fun readHistory(context: Context): List<NotificationEntity> {
     val appDatabase = AppDatabase.getGuiInstance(context)
     return appDatabase.notificationDao().findAll()
-        .joinToString(separator = "\n")
 }
 
 fun clearHistory(context: Context) {
     val appDatabase = AppDatabase.getGuiInstance(context)
     appDatabase.notificationDao().deleteAll()
+}
+
+@Composable
+fun History(notifications: List<NotificationEntity>, modifier: Modifier = Modifier) {
+    Column (modifier = modifier) {
+        notifications.forEach {
+            NotificationFromEntity(it)
+        }
+    }
 }
 
 @Composable

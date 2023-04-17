@@ -13,6 +13,7 @@ interface NotificationDAO {
     @Query("DELETE FROM notifications")
     fun deleteAll()
 
-    @Query("SELECT n.id, n.package_name, n.notification_text FROM notifications n")
+    @Query("SELECT n.id, n.created_at, n.package_name, n.notification_text " +
+            "FROM notifications n")
     fun findAll(): List<NotificationEntity>
 }
